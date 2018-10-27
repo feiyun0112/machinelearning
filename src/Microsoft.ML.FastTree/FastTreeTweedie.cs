@@ -60,11 +60,6 @@ namespace Microsoft.ML.Trainers.FastTree
         /// <param name="numLeaves">The max number of leaves in each regression tree.</param>
         /// <param name="numTrees">Total number of decision trees to create in the ensemble.</param>
         /// <param name="advancedSettings">A delegate to apply all the advanced arguments to the algorithm.</param>
-<<<<<<< HEAD
-        public FastTreeTweedieTrainer(IHostEnvironment env, string labelColumn, string featureColumn,
-            string groupIdColumn = null, string weightColumn = null, Action<Arguments> advancedSettings = null)
-            : base(env, TrainerUtils.MakeR4ScalarLabel(labelColumn), featureColumn, weightColumn, groupIdColumn, advancedSettings: advancedSettings)
-=======
         public FastTreeTweedieTrainer(IHostEnvironment env,
             string labelColumn,
             string featureColumn,
@@ -75,7 +70,6 @@ namespace Microsoft.ML.Trainers.FastTree
             double learningRate = Defaults.LearningRates,
             Action<Arguments> advancedSettings = null)
             : base(env, TrainerUtils.MakeR4ScalarLabel(labelColumn), featureColumn, weightColumn, null, numLeaves, numTrees, minDocumentsInLeafs, learningRate, advancedSettings)
->>>>>>> 5123aeedb91a435236e8b94ba0f17a6d15a20db5
         {
             Host.CheckNonEmpty(labelColumn, nameof(labelColumn));
             Host.CheckNonEmpty(featureColumn, nameof(featureColumn));
