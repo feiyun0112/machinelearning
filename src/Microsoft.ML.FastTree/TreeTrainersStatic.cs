@@ -14,7 +14,7 @@ namespace Microsoft.ML.StaticPipe
     /// <summary>
     /// FastTree <see cref="TrainContextBase"/> extension methods.
     /// </summary>
-    public static class FastTreeRegressionExtensions
+    public static class TreeRegressionExtensions
     {
         /// <summary>
         /// FastTree <see cref="RegressionContext"/> extension method.
@@ -50,7 +50,7 @@ namespace Microsoft.ML.StaticPipe
             Action<FastTreeRegressionTrainer.Arguments> advancedSettings = null,
             Action<FastTreeRegressionPredictor> onFit = null)
         {
-            FastTreeStaticsUtils.CheckUserValues(label, features, weights, numLeaves, numTrees, minDatapointsInLeafs, learningRate, advancedSettings, onFit);
+            CheckUserValues(label, features, weights, numLeaves, numTrees, minDatapointsInLeafs, learningRate, advancedSettings, onFit);
 
             var rec = new TrainerEstimatorReconciler.Regression(
                (env, labelName, featuresName, weightsName) =>
@@ -64,10 +64,6 @@ namespace Microsoft.ML.StaticPipe
 
             return rec.Score;
         }
-    }
-
-    public static class FastTreeBinaryClassificationExtensions
-    {
 
         /// <summary>
         /// FastTree <see cref="BinaryClassificationContext"/> extension method.
@@ -98,7 +94,7 @@ namespace Microsoft.ML.StaticPipe
             Action<FastTreeBinaryClassificationTrainer.Arguments> advancedSettings = null,
             Action<IPredictorWithFeatureWeights<float>> onFit = null)
         {
-            FastTreeStaticsUtils.CheckUserValues(label, features, weights, numLeaves, numTrees, minDatapointsInLeafs, learningRate, advancedSettings, onFit);
+            CheckUserValues(label, features, weights, numLeaves, numTrees, minDatapointsInLeafs, learningRate, advancedSettings, onFit);
 
             var rec = new TrainerEstimatorReconciler.BinaryClassifier(
                (env, labelName, featuresName, weightsName) =>
@@ -114,10 +110,6 @@ namespace Microsoft.ML.StaticPipe
 
             return rec.Output;
         }
-    }
-
-    public static class FastTreeRankingExtensions
-    {
 
         /// <summary>
         /// FastTree <see cref="RankingContext"/>.
@@ -139,7 +131,7 @@ namespace Microsoft.ML.StaticPipe
         /// the linear model that was trained. Note that this action cannot change the result in any way;
         /// it is only a way for the caller to be informed about what was learnt.</param>
         /// <returns>The Score output column indicating the predicted value.</returns>
-        public static Scalar<float> FastTree<TVal>(this RankingContext.RankingTrainers ctx,
+       public static Scalar<float> FastTree<TVal>(this RankingContext.RankingTrainers ctx,
             Scalar<float> label, Vector<float> features, Key<uint, TVal> groupId, Scalar<float> weights = null,
             int numLeaves = Defaults.NumLeaves,
             int numTrees = Defaults.NumTrees,
@@ -148,12 +140,17 @@ namespace Microsoft.ML.StaticPipe
             Action<FastTreeRankingTrainer.Arguments> advancedSettings = null,
             Action<FastTreeRankingPredictor> onFit = null)
         {
-            FastTreeStaticsUtils.CheckUserValues(label, features, weights, numLeaves, numTrees, minDatapointsInLeafs, learningRate, advancedSettings, onFit);
+            CheckUserValues(label, features, weights, numLeaves, numTrees, minDatapointsInLeafs, learningRate, advancedSettings, onFit);
 
             var rec = new TrainerEstimatorReconciler.Ranker<TVal>(
                (env, labelName, featuresName, groupIdName, weightsName) =>
                {
+<<<<<<< HEAD:src/Microsoft.ML.FastTree/FastTreeStatic.cs
                    var trainer = new FastTreeRankingTrainer(env, labelName, featuresName, groupIdName, weightsName, numLeaves, numTrees, minDatapointsInLeafs, learningRate, advancedSettings);
+=======
+                   var trainer = new FastTreeRankingTrainer(env, labelName, featuresName, groupIdName, weightsName, numLeaves,
+                       numTrees, minDatapointsInLeafs, learningRate, advancedSettings);
+>>>>>>> 5123aeedb91a435236e8b94ba0f17a6d15a20db5:src/Microsoft.ML.FastTree/TreeTrainersStatic.cs
                    if (onFit != null)
                        return trainer.WithOnFitDelegate(trans => onFit(trans.Model));
                    return trainer;
@@ -161,17 +158,14 @@ namespace Microsoft.ML.StaticPipe
 
             return rec.Score;
         }
-    }
 
-    internal class FastTreeStaticsUtils
-    {
         internal static void CheckUserValues(PipelineColumn label, Vector<float> features, Scalar<float> weights,
-        int numLeaves,
-        int numTrees,
-        int minDatapointsInLeafs,
-        double learningRate,
-        Delegate advancedSettings,
-        Delegate onFit)
+            int numLeaves,
+            int numTrees,
+            int minDatapointsInLeafs,
+            double learningRate,
+            Delegate advancedSettings,
+            Delegate onFit)
         {
             Contracts.CheckValue(label, nameof(label));
             Contracts.CheckValue(features, nameof(features));

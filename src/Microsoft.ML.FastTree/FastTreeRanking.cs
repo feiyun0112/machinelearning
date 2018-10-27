@@ -82,10 +82,12 @@ namespace Microsoft.ML.Trainers.FastTree
             int minDocumentsInLeafs = Defaults.MinDocumentsInLeafs,
             double learningRate = Defaults.LearningRates,
             Action<Arguments> advancedSettings = null)
+<<<<<<< HEAD
             : base(env, TrainerUtils.MakeR4ScalarLabel(labelColumn), featureColumn, weightColumn, groupIdColumn, numLeaves, numTrees, minDocumentsInLeafs, learningRate, advancedSettings: advancedSettings)
+=======
+            : base(env, TrainerUtils.MakeR4ScalarLabel(labelColumn), featureColumn, weightColumn, groupIdColumn, numLeaves, numTrees, minDocumentsInLeafs, learningRate, advancedSettings)
+>>>>>>> 5123aeedb91a435236e8b94ba0f17a6d15a20db5
         {
-            Host.CheckNonEmpty(labelColumn, nameof(labelColumn));
-            Host.CheckNonEmpty(featureColumn, nameof(featureColumn));
             Host.CheckNonEmpty(groupIdColumn, nameof(groupIdColumn));
         }
 
@@ -93,7 +95,7 @@ namespace Microsoft.ML.Trainers.FastTree
         /// Initializes a new instance of <see cref="FastTreeRankingTrainer"/> by using the legacy <see cref="Arguments"/> class.
         /// </summary>
         internal FastTreeRankingTrainer(IHostEnvironment env, Arguments args)
-                : base(env, args, TrainerUtils.MakeR4ScalarLabel(args.LabelColumn))
+        : base(env, args, TrainerUtils.MakeR4ScalarLabel(args.LabelColumn))
         {
         }
 
