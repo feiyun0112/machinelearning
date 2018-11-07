@@ -9,6 +9,7 @@ using Microsoft.ML.Runtime.Internal.Utilities;
 using Microsoft.ML.Transforms;
 using System;
 using System.CodeDom;
+using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Reflection;
 
