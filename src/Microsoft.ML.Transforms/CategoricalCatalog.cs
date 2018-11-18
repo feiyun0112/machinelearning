@@ -24,7 +24,7 @@ namespace Microsoft.ML
         public static OneHotEncodingEstimator OneHotEncoding(this TransformsCatalog.CategoricalTransforms catalog,
                 string inputColumn,
                 string outputColumn = null,
-                CategoricalTransform.OutputKind outputKind = CategoricalTransform.OutputKind.Ind)
+                OneHotEncodingTransformer.OutputKind outputKind = OneHotEncodingTransformer.OutputKind.Ind)
             => new OneHotEncodingEstimator(CatalogUtils.GetEnvironment(catalog), inputColumn, outputColumn, outputKind);
 
         /// <summary>
@@ -50,10 +50,8 @@ namespace Microsoft.ML
         public static OneHotHashEncodingEstimator OneHotHashEncoding(this TransformsCatalog.CategoricalTransforms catalog,
                 string inputColumn,
                 string outputColumn = null,
-                int hashBits = OneHotHashEncodingEstimator.Defaults.HashBits,
-                int invertHash = OneHotHashEncodingEstimator.Defaults.InvertHash,
-                CategoricalTransform.OutputKind outputKind = CategoricalTransform.OutputKind.Ind)
-            => new OneHotHashEncodingEstimator(CatalogUtils.GetEnvironment(catalog), inputColumn, outputColumn, hashBits, invertHash, outputKind);
+                OneHotEncodingTransformer.OutputKind outputKind = OneHotEncodingTransformer.OutputKind.Ind)
+            => new OneHotHashEncodingEstimator(CatalogUtils.GetEnvironment(catalog), inputColumn, outputColumn, outputKind);
 
         /// <summary>
         /// Convert several text column into hash-based one-hot encoded vectors.

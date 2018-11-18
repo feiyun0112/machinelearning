@@ -98,7 +98,7 @@ namespace Microsoft.ML.Runtime.RunTests
         /// </summary>
         private static void Init(IndentedTextWriter wrt, object defaults)
         {
-            var env = new ConsoleEnvironment(seed: 42);
+            var env = new MLContext(seed: 42);
             wrt.WriteLine("Usage:");
             wrt.WriteLine(CmdParser.ArgumentsUsage(env, defaults.GetType(), defaults, false, 200));
         }
@@ -108,7 +108,7 @@ namespace Microsoft.ML.Runtime.RunTests
         /// </summary>
         private static void Process(IndentedTextWriter wrt, string text, ArgsBase defaults)
         {
-            var env = new ConsoleEnvironment(seed: 42);
+            var env = new MLContext(seed: 42);
             using (wrt.Nest())
             {
                 var args1 = defaults.Clone();
