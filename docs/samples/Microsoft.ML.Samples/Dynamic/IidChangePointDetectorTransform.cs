@@ -1,8 +1,3 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
-
-// the alignment of the usings with the methods is intentional so they can display on the same level in the docs site.
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -14,6 +9,22 @@ namespace Microsoft.ML.Samples.Dynamic
 {
     public partial class TransformSamples
     {
+        class ChangePointPrediction
+        {
+            [VectorType(4)]
+            public double[] Prediction { get; set; }
+        }
+
+        class IidChangePointData
+        {
+            public float Value;
+
+            public IidChangePointData(float value)
+            {
+                Value = value;
+            }
+        }
+
         // This example creates a time series (list of Data with the i-th element corresponding to the i-th time slot). 
         // IidChangePointDetector is applied then to identify points where data distribution changed.
         public static void IidChangePointDetectorTransform()
@@ -24,12 +35,12 @@ namespace Microsoft.ML.Samples.Dynamic
 
             // Generate sample series data with a change
             const int size = 16;
-            var data = new List<Data>(size);
+            var data = new List<IidChangePointData>(size);
             for (int i = 0; i < size / 2; i++)
-                data.Add(new Data(5));
+                data.Add(new IidChangePointData(5));
             // This is a change point
             for (int i = 0; i < size / 2; i++)
-                data.Add(new Data(7));
+                data.Add(new IidChangePointData(7));
 
             // Convert data to IDataView.
             var dataView = ml.CreateStreamingDataView(data);

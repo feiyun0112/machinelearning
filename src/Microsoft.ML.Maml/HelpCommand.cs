@@ -108,7 +108,7 @@ namespace Microsoft.ML.Runtime.Tools
 
             using (var ch = _env.Start("Help"))
             using (var sw = new StringWriter(CultureInfo.InvariantCulture))
-            using (var writer = new IndentedTextWriter(sw))
+            using (var writer = new IndentedTextWriter(sw, "  "))
             {
                 if (_listKinds)
                 {

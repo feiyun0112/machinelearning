@@ -14,6 +14,7 @@ using Microsoft.ML.Transforms;
 using Microsoft.ML.Runtime.EntryPoints;
 using Microsoft.ML.Runtime.Internal.Utilities;
 using Microsoft.ML.Runtime.Model;
+using Microsoft.ML.Data;
 
 [assembly: LoadableClass(OptionalColumnTransform.Summary, typeof(OptionalColumnTransform),
     typeof(OptionalColumnTransform.Arguments), typeof(SignatureDataTransform),
@@ -398,7 +399,8 @@ namespace Microsoft.ML.Transforms
 
         private Delegate MakeGetterVec<T>(int length)
         {
-            return (ValueGetter<VBuffer<T>>)((ref VBuffer<T> value) => value = new VBuffer<T>(length, 0, value.Values, value.Indices));
+            return (ValueGetter<VBuffer<T>>)((ref VBuffer<T> value) =>
+                VBufferUtils.Resize(ref value, length, 0));
         }
 
         private sealed class RowCursor : SynchronizedCursorBase<IRowCursor>, IRowCursor
@@ -467,7 +469,8 @@ namespace Microsoft.ML.Transforms
 
             private Delegate MakeGetterVec<T>(int length)
             {
-                return (ValueGetter<VBuffer<T>>)((ref VBuffer<T> value) => value = new VBuffer<T>(length, 0, value.Values, value.Indices));
+                return (ValueGetter<VBuffer<T>>)((ref VBuffer<T> value) =>
+                    VBufferUtils.Resize(ref value, length, 0));
             }
         }
 

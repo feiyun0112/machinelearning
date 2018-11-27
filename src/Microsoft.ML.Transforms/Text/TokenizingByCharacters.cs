@@ -5,6 +5,7 @@
 #pragma warning disable 420 // volatile with Interlocked.CompareExchange
 
 using Microsoft.ML.Core.Data;
+using Microsoft.ML.Data;
 using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.CommandLine;
 using Microsoft.ML.Runtime.Data;
@@ -184,7 +185,7 @@ namespace Microsoft.ML.Transforms.Text
 
         protected override IRowMapper MakeRowMapper(Schema schema) => new Mapper(this, schema);
 
-        private sealed class Mapper : MapperBase
+        private sealed class Mapper : OneToOneMapperBase
         {
             private readonly ColumnType _type;
             private readonly TokenizingByCharactersTransformer _parent;
@@ -204,19 +205,19 @@ namespace Microsoft.ML.Transforms.Text
                     _isSourceVector[i] = inputSchema[_parent.ColumnPairs[i].input].Type.IsVector;
             }
 
-            public override Schema.Column[] GetOutputColumns()
+            protected override Schema.DetachedColumn[] GetOutputColumnsCore()
             {
-                var result = new Schema.Column[_parent.ColumnPairs.Length];
+                var result = new Schema.DetachedColumn[_parent.ColumnPairs.Length];
                 for (int i = 0; i < _parent.ColumnPairs.Length; i++)
                 {
-                    var builder = new Schema.Metadata.Builder();
+                    var builder = new MetadataBuilder();
                     AddMetadata(i, builder);
-                    result[i] = new Schema.Column(_parent.ColumnPairs[i].output, _type, builder.GetMetadata());
+                    result[i] = new Schema.DetachedColumn(_parent.ColumnPairs[i].output, _type, builder.GetMetadata());
                 }
                 return result;
             }
 
-            private void AddMetadata(int iinfo, Schema.Metadata.Builder builder)
+            private void AddMetadata(int iinfo, MetadataBuilder builder)
             {
                 builder.Add(InputSchema[_parent.ColumnPairs[iinfo].input].Metadata, name => name == MetadataUtils.Kinds.SlotNames);
                 ValueGetter<VBuffer<ReadOnlyMemory<char>>> getter =
@@ -258,12 +259,10 @@ namespace Microsoft.ML.Transforms.Text
                 var keyValuesBoundaries = _keyValuesBoundaries;
                 Host.AssertValue(keyValuesBoundaries);
 
-                var values = dst.Values;
-                if (Utils.Size(values) < CharsCount)
-                    values = new ReadOnlyMemory<char>[CharsCount];
+                var editor = VBufferEditor.Create(ref dst, CharsCount);
                 for (int i = 0; i < CharsCount; i++)
-                    values[i] = keyValuesStr.AsMemory().Slice(keyValuesBoundaries[i], keyValuesBoundaries[i + 1] - keyValuesBoundaries[i]);
-                dst = new VBuffer<ReadOnlyMemory<char>>(CharsCount, values, dst.Indices);
+                    editor.Values[i] = keyValuesStr.AsMemory().Slice(keyValuesBoundaries[i], keyValuesBoundaries[i + 1] - keyValuesBoundaries[i]);
+                dst = editor.Commit();
             }
 
             private void AppendCharRepr(char c, StringBuilder bldr)
@@ -399,7 +398,7 @@ namespace Microsoft.ML.Transforms.Text
                 }
             }
 
-            protected override Delegate MakeGetter(IRow input, int iinfo, out Action disposer)
+            protected override Delegate MakeGetter(IRow input, int iinfo, Func<int, bool> activeOutput, out Action disposer)
             {
                 Host.AssertValue(input);
                 Host.Assert(0 <= iinfo && iinfo < _parent.ColumnPairs.Length);
@@ -421,24 +420,21 @@ namespace Microsoft.ML.Transforms.Text
                         getSrc(ref src);
 
                         var len = !src.IsEmpty ? (_parent._useMarkerChars ? src.Length + TextMarkersCount : src.Length) : 0;
-                        var values = dst.Values;
+                        var editor = VBufferEditor.Create(ref dst, len);
                         if (len > 0)
                         {
-                            if (Utils.Size(values) < len)
-                                values = new ushort[len];
-
                             int index = 0;
                             if (_parent._useMarkerChars)
-                                values[index++] = TextStartMarker;
+                                editor.Values[index++] = TextStartMarker;
                             var span = src.Span;
                             for (int ich = 0; ich < src.Length; ich++)
-                                values[index++] = span[ich];
+                                editor.Values[index++] = span[ich];
                             if (_parent._useMarkerChars)
-                                values[index++] = TextEndMarker;
+                                editor.Values[index++] = TextEndMarker;
                             Contracts.Assert(index == len);
                         }
 
-                        dst = new VBuffer<ushort>(len, values, dst.Indices);
+                        dst = editor.Commit();
                     };
             }
 
