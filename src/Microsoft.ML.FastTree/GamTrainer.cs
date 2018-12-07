@@ -34,8 +34,33 @@ namespace Microsoft.ML.Trainers.FastTree
     using SplitInfo = LeastSquaresRegressionTreeLearner.SplitInfo;
 
     /// <summary>
-    /// Generalized Additive Model Learner.
+    /// Generalized Additive Model Trainer.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Generalized Additive Models, or GAMs, model the data as a set of linearly independent features
+    /// similar to a linear model. For each feature, the GAM trainer learns a non-linear function,
+    /// called a "shape function", that computes the response as a function of the feature's value.
+    /// (In contrast, a linear model fits a linear response (e.g. a line) to each feature.)
+    /// To score an example, the outputs of all the shape functions are summed and the score is the total value.
+    /// </para>
+    /// <para>
+    /// This GAM trainer is implemented using shallow gradient boosted trees (e.g. tree stumps) to learn nonparametric
+    /// shape functions, and is based on the method described in Lou, Caruana, and Gehrke.
+    /// <a href='http://www.cs.cornell.edu/~yinlou/papers/lou-kdd12.pdf'>&quot;Intelligible Models for Classification and Regression.&quot;</a> KDD&apos;12, Beijing, China. 2012.
+    /// After training, an intercept is added to represent the average prediction over the training set,
+    /// and the shape functions are normalized to represent the deviation from the average prediction. This results
+    /// in models that are easily interpreted simply by inspecting the intercept and the shape functions.
+    /// See the sample below for an example of how to train a GAM model and inspect and interpret the results.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <format type="text/markdown">
+    /// <![CDATA[
+    /// [!code-csharp[GAM](~/../docs/samples/docs/samples/Microsoft.ML.Samples/Dynamic/GeneralizedAdditiveModels.cs)]
+    /// ]]>
+    /// </format>
+    /// </example>
     public abstract partial class GamTrainerBase<TArgs, TTransformer, TPredictor> : TrainerEstimatorBase<TTransformer, TPredictor>
         where TTransformer: ISingleFeaturePredictionTransformer<TPredictor>
         where TArgs : GamTrainerBase<TArgs, TTransformer, TPredictor>.ArgumentsBase, new()
@@ -631,6 +656,7 @@ namespace Microsoft.ML.Trainers.FastTree
         public readonly double Intercept;
         private readonly int _numFeatures;
         private readonly ColumnType _inputType;
+        private readonly ColumnType _outputType;
         // These would be the bins for a totally sparse input.
         private readonly int[] _binsAtAllZero;
         // The output value for all zeros
@@ -640,9 +666,8 @@ namespace Microsoft.ML.Trainers.FastTree
         private readonly int _inputLength;
         private readonly Dictionary<int, int> _inputFeatureToDatasetFeatureMap;
 
-        public ColumnType InputType => _inputType;
-
-        public ColumnType OutputType => NumberType.Float;
+        ColumnType IValueMapper.InputType => _inputType;
+        ColumnType IValueMapper.OutputType => _outputType;
 
         private protected GamPredictorBase(IHostEnvironment env, string name,
             int inputLength, Dataset trainSet, double meanEffect, double[][] binEffects, int[] featureMap)
@@ -658,6 +683,7 @@ namespace Microsoft.ML.Trainers.FastTree
 
             _numFeatures = binEffects.Length;
             _inputType = new VectorType(NumberType.Float, _inputLength);
+            _outputType = NumberType.Float;
             _featureMap = featureMap;
 
             Intercept = meanEffect;
@@ -762,6 +788,7 @@ namespace Microsoft.ML.Trainers.FastTree
             }
 
             _inputType = new VectorType(NumberType.Float, _inputLength);
+            _outputType = NumberType.Float;
         }
 
         public override void Save(ModelSaveContext ctx)
@@ -975,7 +1002,7 @@ namespace Microsoft.ML.Trainers.FastTree
             return featureWeights;
         }
 
-        public void SaveAsText(TextWriter writer, RoleMappedSchema schema)
+        void ICanSaveInTextFormat.SaveAsText(TextWriter writer, RoleMappedSchema schema)
         {
             Host.CheckValue(writer, nameof(writer));
             Host.CheckValueOrNull(schema);
@@ -1018,7 +1045,7 @@ namespace Microsoft.ML.Trainers.FastTree
 
         public void SaveSummary(TextWriter writer, RoleMappedSchema schema)
         {
-            SaveAsText(writer, schema);
+            ((ICanSaveInTextFormat)this).SaveAsText(writer, schema);
         }
 
         /// <summary>
@@ -1097,7 +1124,7 @@ namespace Microsoft.ML.Trainers.FastTree
                 /// These are the number of input features, as opposed to the number of features used within GAM
                 /// which may be lower.
                 /// </summary>
-                public int NumFeatures => _pred.InputType.VectorSize;
+                public int NumFeatures => _pred._inputType.VectorSize;
 
                 public Context(IChannel ch, GamPredictorBase pred, RoleMappedData data, IEvaluator eval)
                 {
@@ -1317,7 +1344,7 @@ namespace Microsoft.ML.Trainers.FastTree
                     public static FeatureInfo GetInfoForIndex(Context context, int index)
                     {
                         Contracts.AssertValue(context);
-                        Contracts.Assert(0 <= index && index < context._pred.InputType.ValueCount);
+                        Contracts.Assert(0 <= index && index < context._pred._inputType.ValueCount);
                         lock (context._pred)
                         {
                             int internalIndex;

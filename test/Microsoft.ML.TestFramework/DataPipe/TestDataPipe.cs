@@ -459,7 +459,7 @@ namespace Microsoft.ML.Runtime.RunTests
                     "xf=CatHash{col=OneInd:One bits=10}",
                     // One is for the non-vector case and OneInd is reduced to a small size.
                     "xf=CountFeatureSelection{col=Num col=One col=OneInd count=1}",
-                    // This tests the path where a no-op transform is created.
+                    // This tests the path where a copycolumn transform is created.
                     "xf=CountFeatureSelection{col=Num col=One col=OneInd count=1}",
                     // This tests counts greater than 1
                     "xf=KeyToVector{col=Key}",
@@ -781,6 +781,35 @@ namespace Microsoft.ML.Runtime.RunTests
                     "xf=Token{col=SourceTokens:Source}",
                     "xf=StopWords{langscol=Lang col=Output:SourceTokens}"
                 }, roundTripText: false);
+
+            Done();
+        }
+
+        [Fact]
+        public void SavePipeDropNAs()
+        {
+            string pathData = DeleteOutputPath("SavePipe", "DropNAs.txt");
+            File.WriteAllLines(pathData,
+                new[]
+                {
+                    "2,0,|,Hello World!",
+                    "3,4,|,",
+                    "0,nan,|,Bye all",
+                    "7,8,|,Good bye",
+                    "?,nan,|,this is a"
+                });
+
+            TestCore(pathData, false,
+                new[]
+                {
+                    "loader=Text{header- sep=, col=Num:R4:0-1 col=Sep:TX:2 col=Text:TX:3}",
+                    "xf=NADrop{col=NumNAsDropped:Num}",
+                    "xf=Token{col=Text}",
+                    "xf=Term{col=Text2:Text terms=Hello,all,Good,Bye}",
+                    "xf=NADrop{col=TextNAsDropped:Text2}",
+                    "xf=Copy{col=Sep2:Sep col=Sep3:Sep}",
+                    "xf=Select{keepcol=Num keepcol=Sep keepcol=NumNAsDropped keepcol=Sep2 keepcol=Text keepcol=Sep3 keepcol=TextNAsDropped}"
+                }, baselineSchema: false, roundTripText: false);
 
             Done();
         }

@@ -12,7 +12,7 @@ using Microsoft.ML.Runtime.Internal.Utilities;
 using Microsoft.ML.Runtime.Model;
 using Microsoft.ML.Runtime.Model.Onnx;
 using Microsoft.ML.Runtime.Model.Pfa;
-using Microsoft.ML.Transforms.Categorical;
+using Microsoft.ML.Transforms.Conversions;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -34,7 +34,7 @@ using System.Threading;
 [assembly: LoadableClass(typeof(IRowMapper), typeof(ValueToKeyMappingTransformer), null, typeof(SignatureLoadRowMapper),
     ValueToKeyMappingTransformer.UserName, ValueToKeyMappingTransformer.LoaderSignature)]
 
-namespace Microsoft.ML.Transforms.Categorical
+namespace Microsoft.ML.Transforms.Conversions
 {
     // TermTransform builds up term vocabularies (dictionaries).
     // Notes:
@@ -713,7 +713,7 @@ namespace Microsoft.ML.Transforms.Categorical
             return _unboundMaps[iinfo];
         }
 
-        protected override IRowMapper MakeRowMapper(Schema schema)
+        private protected override IRowMapper MakeRowMapper(Schema schema)
           => new Mapper(this, schema);
 
         private sealed class Mapper : OneToOneMapperBase, ISaveAsOnnx, ISaveAsPfa
@@ -768,7 +768,7 @@ namespace Microsoft.ML.Transforms.Categorical
                 return result;
             }
 
-            protected override Delegate MakeGetter(IRow input, int iinfo, Func<int, bool> activeOutput, out Action disposer)
+            protected override Delegate MakeGetter(Row input, int iinfo, Func<int, bool> activeOutput, out Action disposer)
             {
                 Contracts.AssertValue(input);
                 Contracts.Assert(0 <= iinfo && iinfo < _parent.ColumnPairs.Length);
@@ -777,7 +777,7 @@ namespace Microsoft.ML.Transforms.Categorical
                 return Utils.MarshalInvoke(MakeGetter<int>, type.RawType, input, iinfo);
             }
 
-            private Delegate MakeGetter<T>(IRow row, int src) => _termMap[src].GetMappingGetter(row);
+            private Delegate MakeGetter<T>(Row row, int src) => _termMap[src].GetMappingGetter(row);
 
             private bool SaveAsOnnxCore(OnnxContext ctx, int iinfo, ColInfo info, string srcVariableName, string dstVariableName)
             {
