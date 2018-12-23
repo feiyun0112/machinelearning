@@ -51,6 +51,7 @@ namespace Microsoft.ML
             where TTrans : class, ITransformer
         {
             Contracts.CheckValue(start, nameof(start));
+            Contracts.CheckValue(estimator, nameof(estimator));
 
             if (start is EstimatorChain<ITransformer> est)
                 return est.Append(estimator, scope);

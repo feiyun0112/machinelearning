@@ -887,20 +887,5 @@ namespace Microsoft.ML.StaticPipelineTesting
             type = schema[num].Type;
             Assert.Equal(new VectorType(NumberType.R4, 3), type);
         }
-
-        [Fact]
-        public void UseSameColumnNamesForAppend()
-        {
-            var env = new ConsoleEnvironment(seed: 1, conc: 0);
-            var dataView = env.CreateDataView(new[]{new {A = "A", B = "B", C = "C"}}).AssertStatic(env, c => (
-                A: c.Text.Scalar,
-                B: c.Text.Scalar,
-                C: c.Text.Scalar));
-
-            var dataPipeline= dataView.MakeNewEstimator().Append(row => (row.A,row.B));
-            
-            var transformedData = dataPipeline.Fit(dataView).Transform(dataView);
-            Assert.Equal("B",transformedData.GetColumn(r => r.B).First());            
-        }
     }
 }
