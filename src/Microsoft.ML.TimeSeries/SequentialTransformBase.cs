@@ -2,13 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
+using Microsoft.ML.Data;
 using Microsoft.ML.Runtime.Data;
 using Microsoft.ML.Runtime.Data.IO;
 using Microsoft.ML.Runtime.Internal.Utilities;
 using Microsoft.ML.Runtime.Model;
-using Microsoft.ML.Runtime.Api;
-using Microsoft.ML.Data;
+using Microsoft.ML.Transforms;
+using System;
 
 namespace Microsoft.ML.Runtime.TimeSeriesProcessing
 {
@@ -326,7 +326,7 @@ namespace Microsoft.ML.Runtime.TimeSeriesProcessing
             if (!_transform.Schema.TryGetColumnIndex(OutputColumnName, out colIndex))
                 throw Host.Except(String.Format("The column {0} does not exist in the schema.", OutputColumnName));
 
-            bs.TryWriteTypeDescription(ctx.Writer.BaseStream, _transform.Schema.GetColumnType(colIndex), out byteWritten);
+            bs.TryWriteTypeDescription(ctx.Writer.BaseStream, _transform.Schema[colIndex].Type, out byteWritten);
         }
 
         private static void MapFunction(DataBox<TInput> input, DataBox<TOutput> output, TState state)
@@ -381,7 +381,7 @@ namespace Microsoft.ML.Runtime.TimeSeriesProcessing
             public Cursor(SequentialTransformBase<TInput, TOutput, TState> parent, RowCursor input)
                 : base(parent.Host, input)
             {
-                Ch.Assert(input.Schema.ColumnCount == parent.OutputSchema.ColumnCount);
+                Ch.Assert(input.Schema.Count == parent.OutputSchema.Count);
                 _parent = parent;
             }
 
@@ -389,7 +389,7 @@ namespace Microsoft.ML.Runtime.TimeSeriesProcessing
 
             public override bool IsColumnActive(int col)
             {
-                Ch.Check(0 <= col && col < Schema.ColumnCount, "col");
+                Ch.Check(0 <= col && col < Schema.Count, "col");
                 return Input.IsColumnActive(col);
             }
 

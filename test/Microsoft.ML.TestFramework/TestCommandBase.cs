@@ -2094,30 +2094,38 @@ namespace Microsoft.ML.Runtime.RunTests
             Done();
         }
 
-        [Fact]
-        public void CommandCodeGen()
+        [TestCategory("DataPipeSerialization")]
+        [Fact()]
+        public void SavePipeChooseColumnsByIndex()
         {
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                return;
+            string dataPath = GetDataPath("adult.tiny.with-schema.txt");
+            const string loaderArgs = "loader=text{header+ col=Label:0 col=Cat:TX:1-8 col=Num:9-14 col=Name:TX:9}";
 
-            // REVIEW: this tests that the generated output matches the baseline. This does NOT baseline
-            // the console output. Currently, there's no console output either, but if some is added, a baseline test
-            // will be in order.
+            OutputPath modelPath = ModelPath();
+            string extraArgs = "xf=ChooseColumnsByIndex{ind=3 ind=0}";
+            TestCore("showdata", dataPath, loaderArgs, extraArgs);
 
-            // First, train a model on breast-cancer.
-            var dataPath = GetDataPath("breast-cancer.txt");
-            var modelOutPath = DeleteOutputPath("Command", "codegen-model.zip");
-            var csOutPath = DeleteOutputPath("Command", "codegen-out.cs");
+            _step++;
 
-            var trainArgs = string.Format(
-                "train data={{{0}}} loader=Text{{col=Label:0 col=F!1:1-5 col=F2:6-9}} xf=Concat{{col=Features:F!1,F2}} tr=lr out={{{1}}}",
-                dataPath, modelOutPath);
-            MainForTest(trainArgs);
+            TestCore("showdata", dataPath, string.Format("in={{{0}}}", modelPath.Path), "");
+            Done();
+        }
 
-            // Now, generate the prediction code.
-            MainForTest(string.Format("codegen in={{{0}}} cs={{{1}}} modelNameOverride=model.zip", modelOutPath, csOutPath));
-            CheckEquality("Command", "codegen-out.cs");
+        [TestCategory("DataPipeSerialization")]
+        [Fact()]
+        public void SavePipeChooseColumnsByIndexDrop()
+        {
+            string dataPath = GetDataPath("adult.tiny.with-schema.txt");
+            const string loaderArgs = "loader=text{header+ col=Label:0 col=Cat:TX:1-8 col=Num:9-14 col=Name:TX:9}";
 
+            OutputPath modelPath = ModelPath();
+
+            string extraArgs = "xf=ChooseColumnsByIndex{ind=3 ind=0 drop+}";
+            TestCore("showdata", dataPath, loaderArgs, extraArgs);
+
+            _step++;
+
+            TestCore("showdata", dataPath, string.Format("in={{{0}}}", modelPath.Path), "");
             Done();
         }
     }

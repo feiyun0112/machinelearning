@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.ML.LightGBM.StaticPipe;
 using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.Data;
 using Microsoft.ML.Runtime.FactorizationMachine;
@@ -15,8 +16,6 @@ using Microsoft.ML.Trainers;
 using Microsoft.ML.Trainers.FastTree;
 using Microsoft.ML.Trainers.KMeans;
 using Microsoft.ML.Trainers.Recommender;
-using Microsoft.ML.Transforms.Categorical;
-using Microsoft.ML.Transforms.Conversions;
 using System;
 using System.Linq;
 using Xunit;
@@ -43,7 +42,7 @@ namespace Microsoft.ML.StaticPipelineTesting
                 c => (label: c.LoadFloat(11), features: c.LoadFloat(0, 10)),
                 separator: ';', hasHeader: true);
 
-            LinearRegressionPredictor pred = null;
+            LinearRegressionModelParameters pred = null;
 
             var est = reader.MakeNewEstimator()
                 .Append(r => (r.label, score: ctx.Trainers.Sdca(r.label, r.features, maxIterations: 2,
@@ -55,7 +54,7 @@ namespace Microsoft.ML.StaticPipelineTesting
             var model = pipe.Fit(dataSource);
             Assert.NotNull(pred);
             // 11 input features, so we ought to have 11 weights.
-            Assert.Equal(11, pred.Weights2.Count);
+            Assert.Equal(11, pred.Weights.Count);
 
             var data = model.Read(dataSource);
 
@@ -69,8 +68,8 @@ namespace Microsoft.ML.StaticPipelineTesting
 
             // Just output some data on the schema for fun.
             var schema = data.AsDynamic.Schema;
-            for (int c = 0; c < schema.ColumnCount; ++c)
-                Console.WriteLine($"{schema.GetColumnName(c)}, {schema.GetColumnType(c)}");
+            for (int c = 0; c < schema.Count; ++c)
+                Console.WriteLine($"{schema[c].Name}, {schema[c].Type}");
         }
 
         [Fact]
@@ -97,10 +96,10 @@ namespace Microsoft.ML.StaticPipelineTesting
             // Now, let's see if that column is still there, and still text!
             var schema = data.AsDynamic.Schema;
             Assert.True(schema.TryGetColumnIndex("Score", out int scoreCol), "Score column not present!");
-            Assert.Equal(TextType.Instance, schema.GetColumnType(scoreCol));
+            Assert.Equal(TextType.Instance, schema[scoreCol].Type);
 
-            for (int c = 0; c < schema.ColumnCount; ++c)
-                Console.WriteLine($"{schema.GetColumnName(c)}, {schema.GetColumnType(c)}");
+            for (int c = 0; c < schema.Count; ++c)
+                Console.WriteLine($"{schema[c].Name}, {schema[c].Type}");
         }
 
         [Fact]
@@ -114,7 +113,7 @@ namespace Microsoft.ML.StaticPipelineTesting
             var reader = TextLoader.CreateReader(env,
                 c => (label: c.LoadBool(0), features: c.LoadFloat(1, 9)));
 
-            LinearBinaryPredictor pred = null;
+            LinearBinaryModelParameters pred = null;
             ParameterMixingCalibratedPredictor cali = null;
 
             var est = reader.MakeNewEstimator()
@@ -131,7 +130,7 @@ namespace Microsoft.ML.StaticPipelineTesting
             Assert.NotNull(pred);
             Assert.NotNull(cali);
             // 9 input features, so we ought to have 9 weights.
-            Assert.Equal(9, pred.Weights2.Count);
+            Assert.Equal(9, pred.Weights.Count);
 
             var data = model.Read(dataSource);
 
@@ -145,8 +144,8 @@ namespace Microsoft.ML.StaticPipelineTesting
 
             // Just output some data on the schema for fun.
             var schema = data.AsDynamic.Schema;
-            for (int c = 0; c < schema.ColumnCount; ++c)
-                Console.WriteLine($"{schema.GetColumnName(c)}, {schema.GetColumnType(c)}");
+            for (int c = 0; c < schema.Count; ++c)
+                Console.WriteLine($"{schema[c].Name}, {schema[c].Type}");
         }
 
         [Fact]
@@ -160,7 +159,7 @@ namespace Microsoft.ML.StaticPipelineTesting
             var reader = TextLoader.CreateReader(env,
                 c => (label: c.LoadBool(0), features: c.LoadFloat(1, 9)));
 
-            LinearBinaryPredictor pred = null;
+            LinearBinaryModelParameters pred = null;
 
             var loss = new HingeLoss(1);
 
@@ -177,7 +176,7 @@ namespace Microsoft.ML.StaticPipelineTesting
             var model = pipe.Fit(dataSource);
             Assert.NotNull(pred);
             // 9 input features, so we ought to have 9 weights.
-            Assert.Equal(9, pred.Weights2.Count);
+            Assert.Equal(9, pred.Weights.Count);
 
             var data = model.Read(dataSource);
 
@@ -189,8 +188,8 @@ namespace Microsoft.ML.StaticPipelineTesting
 
             // Just output some data on the schema for fun.
             var schema = data.AsDynamic.Schema;
-            for (int c = 0; c < schema.ColumnCount; ++c)
-                Console.WriteLine($"{schema.GetColumnName(c)}, {schema.GetColumnType(c)}");
+            for (int c = 0; c < schema.Count; ++c)
+                Console.WriteLine($"{schema[c].Name}, {schema[c].Type}");
         }
 
         [Fact]
@@ -204,7 +203,7 @@ namespace Microsoft.ML.StaticPipelineTesting
             var reader = TextLoader.CreateReader(env,
                 c => (label: c.LoadBool(0), features: c.LoadFloat(1, 9)));
 
-            LinearBinaryPredictor pred = null;
+            LinearBinaryModelParameters pred = null;
 
             var loss = new HingeLoss(1);
 
@@ -218,7 +217,7 @@ namespace Microsoft.ML.StaticPipelineTesting
             var model = pipe.Fit(dataSource);
             Assert.NotNull(pred);
             // 9 input features, so we ought to have 9 weights.
-            Assert.Equal(9, pred.Weights2.Count);
+            Assert.Equal(9, pred.Weights.Count);
 
             var data = model.Read(dataSource);
 
@@ -240,7 +239,7 @@ namespace Microsoft.ML.StaticPipelineTesting
             var reader = TextLoader.CreateReader(env,
                 c => (label: c.LoadBool(0), features: c.LoadFloat(1, 9)));
 
-            LinearBinaryPredictor pred = null;
+            LinearBinaryModelParameters pred = null;
 
             var loss = new HingeLoss(1);
 
@@ -254,7 +253,7 @@ namespace Microsoft.ML.StaticPipelineTesting
             var model = pipe.Fit(dataSource);
             Assert.NotNull(pred);
             // 9 input features, so we ought to have 9 weights.
-            Assert.Equal(9, pred.Weights2.Count);
+            Assert.Equal(9, pred.Weights.Count);
 
             var data = model.Read(dataSource);
 
@@ -339,8 +338,8 @@ namespace Microsoft.ML.StaticPipelineTesting
 
             // Just output some data on the schema for fun.
             var schema = data.AsDynamic.Schema;
-            for (int c = 0; c < schema.ColumnCount; ++c)
-                Console.WriteLine($"{schema.GetColumnName(c)}, {schema.GetColumnType(c)}");
+            for (int c = 0; c < schema.Count; ++c)
+                Console.WriteLine($"{schema[c].Name}, {schema[c].Type}");
 
             var metrics = ctx.Evaluate(data, r => r.label, r => r.preds, 2);
             Assert.True(metrics.LogLoss > 0);
@@ -423,7 +422,7 @@ namespace Microsoft.ML.StaticPipelineTesting
                 c => (label: c.LoadFloat(11), features: c.LoadFloat(0, 10)),
                 separator: ';', hasHeader: true);
 
-            FastTreeRegressionPredictor pred = null;
+            FastTreeRegressionModelParameters pred = null;
 
             var est = reader.MakeNewEstimator()
                 .Append(r => (r.label, score: ctx.Trainers.FastTree(r.label, r.features,
@@ -505,7 +504,7 @@ namespace Microsoft.ML.StaticPipelineTesting
                 c => (label: c.LoadFloat(11), features: c.LoadFloat(0, 10)),
                 separator: ';', hasHeader: true);
 
-            LightGbmRegressionPredictor pred = null;
+            LightGbmRegressionModelParameters pred = null;
 
             var est = reader.MakeNewEstimator()
                 .Append(r => (r.label, score: ctx.Trainers.LightGbm(r.label, r.features,
@@ -547,7 +546,7 @@ namespace Microsoft.ML.StaticPipelineTesting
                 c => (label: c.LoadFloat(11), features: c.LoadFloat(0, 10)),
                 separator: ';', hasHeader: true);
 
-            PoissonRegressionPredictor pred = null;
+            PoissonRegressionModelParameters pred = null;
 
             var est = reader.MakeNewEstimator()
                 .Append(r => (r.label, score: ctx.Trainers.PoissonRegression(r.label, r.features,
@@ -652,8 +651,8 @@ namespace Microsoft.ML.StaticPipelineTesting
 
             // Just output some data on the schema for fun.
             var schema = data.AsDynamic.Schema;
-            for (int c = 0; c < schema.ColumnCount; ++c)
-                Console.WriteLine($"{schema.GetColumnName(c)}, {schema.GetColumnType(c)}");
+            for (int c = 0; c < schema.Count; ++c)
+                Console.WriteLine($"{schema[c].Name}, {schema[c].Type}");
 
             var metrics = ctx.Evaluate(data, r => r.label, r => r.preds, 2);
             Assert.True(metrics.LogLoss > 0);
@@ -673,7 +672,7 @@ namespace Microsoft.ML.StaticPipelineTesting
                 c => (label: c.LoadFloat(11), features: c.LoadFloat(0, 10)),
                 separator: ';', hasHeader: true);
 
-            LinearRegressionPredictor pred = null;
+            LinearRegressionModelParameters pred = null;
 
             var loss = new SquaredLoss();
 
@@ -771,7 +770,7 @@ namespace Microsoft.ML.StaticPipelineTesting
                 c => (label: c.LoadFloat(0), features: c.LoadFloat(9, 14), groupId: c.LoadText(1)),
                 separator: '\t', hasHeader: true);
 
-            FastTreeRankingPredictor pred = null;
+            FastTreeRankingModelParameters pred = null;
 
             var est = reader.MakeNewEstimator()
                 .Append(r => (r.label, r.features, groupId: r.groupId.ToKey()))
@@ -812,7 +811,7 @@ namespace Microsoft.ML.StaticPipelineTesting
                 c => (label: c.LoadFloat(0), features: c.LoadFloat(9, 14), groupId: c.LoadText(1)),
                 separator: '\t', hasHeader: true);
 
-            LightGbmRankingPredictor pred = null;
+            LightGbmRankingModelParameters pred = null;
 
             var est = reader.MakeNewEstimator()
                 .Append(r => (r.label, r.features, groupId: r.groupId.ToKey()))
@@ -870,8 +869,8 @@ namespace Microsoft.ML.StaticPipelineTesting
 
             // Just output some data on the schema for fun.
             var schema = data.AsDynamic.Schema;
-            for (int c = 0; c < schema.ColumnCount; ++c)
-                Console.WriteLine($"{schema.GetColumnName(c)}, {schema.GetColumnType(c)}");
+            for (int c = 0; c < schema.Count; ++c)
+                Console.WriteLine($"{schema[c].Name}, {schema[c].Type}");
 
             var metrics = ctx.Evaluate(data, r => r.label, r => r.preds, 2);
             Assert.True(metrics.LogLoss > 0);
@@ -915,8 +914,8 @@ namespace Microsoft.ML.StaticPipelineTesting
 
             // Just output some data on the schema for fun.
             var schema = data.AsDynamic.Schema;
-            for (int c = 0; c < schema.ColumnCount; ++c)
-                Console.WriteLine($"{schema.GetColumnName(c)}, {schema.GetColumnType(c)}");
+            for (int c = 0; c < schema.Count; ++c)
+                Console.WriteLine($"{schema[c].Name}, {schema[c].Type}");
 
             var metrics = ctx.Evaluate(data, r => r.label, r => r.preds, 2);
             Assert.True(metrics.LogLoss > 0);
@@ -976,7 +975,7 @@ namespace Microsoft.ML.StaticPipelineTesting
             // Read data file. The file contains 3 columns, label (float value), matrixColumnIndex (unsigned integer key), and matrixRowIndex (unsigned integer key).
             // More specifically, LoadKey(1, 0, 19) means that the matrixColumnIndex column is read from the 2nd (indexed by 1) column in the data file and as
             // a key type (stored as 32-bit unsigned integer) ranged from 0 to 19 (aka the training matrix has 20 columns).
-            var reader = mlContext.Data.TextReader(ctx => (label: ctx.LoadFloat(0), matrixColumnIndex: ctx.LoadKey(1, 0, 19), matrixRowIndex: ctx.LoadKey(2, 0, 39)), hasHeader: true);
+            var reader = mlContext.Data.CreateTextReader(ctx => (label: ctx.LoadFloat(0), matrixColumnIndex: ctx.LoadKey(1, 0, 19), matrixRowIndex: ctx.LoadKey(2, 0, 39)), hasHeader: true);
 
             // The parameter that will be into the onFit method below. The obtained predictor will be assigned to this variable
             // so that we will be able to touch it.

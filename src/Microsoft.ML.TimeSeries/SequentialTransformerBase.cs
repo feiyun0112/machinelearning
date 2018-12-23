@@ -2,18 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
+using Microsoft.ML.Data;
 using Microsoft.ML.Runtime.Data;
 using Microsoft.ML.Runtime.Data.IO;
 using Microsoft.ML.Runtime.Internal.Utilities;
 using Microsoft.ML.Runtime.Model;
-using Microsoft.ML.Runtime.Api;
-using Microsoft.ML.TimeSeries;
 using Microsoft.ML.Runtime.Model.Onnx;
 using Microsoft.ML.Runtime.Model.Pfa;
-using System.Linq;
-using Microsoft.ML.Data;
+using Microsoft.ML.TimeSeries;
+using Microsoft.ML.Transforms;
+using System;
 using System.IO;
+using System.Linq;
 
 namespace Microsoft.ML.Runtime.TimeSeriesProcessing
 {
@@ -343,7 +343,7 @@ namespace Microsoft.ML.Runtime.TimeSeriesProcessing
 
         public abstract Schema GetOutputSchema(Schema inputSchema);
 
-        private protected abstract IStatefulRowMapper MakeRowMapper(ISchema schema);
+        private protected abstract IStatefulRowMapper MakeRowMapper(Schema schema);
 
         private protected SequentialDataTransform MakeDataTransform(IDataView input)
         {
@@ -386,7 +386,7 @@ namespace Microsoft.ML.Runtime.TimeSeriesProcessing
                 _transform = CreateLambdaTransform(_parent.Host, input, _parent.InputColumnName,
                     _parent.OutputColumnName, InitFunction, _parent.WindowSize > 0, _parent.OutputColumnType);
                 _mapper = mapper;
-                _bindings = new ColumnBindings(Schema.Create(input.Schema), _mapper.GetOutputColumns());
+                _bindings = new ColumnBindings(input.Schema, _mapper.GetOutputColumns());
             }
 
             public void CloneStateInMapper() => _mapper.CloneState();
@@ -470,7 +470,7 @@ namespace Microsoft.ML.Runtime.TimeSeriesProcessing
 
             public Func<int, bool> GetDependencies(Func<int, bool> predicate)
             {
-                for (int i = 0; i < OutputSchema.ColumnCount; i++)
+                for (int i = 0; i < OutputSchema.Count; i++)
                 {
                     if (predicate(i))
                         return col => true;
@@ -505,7 +505,7 @@ namespace Microsoft.ML.Runtime.TimeSeriesProcessing
             {
                 Contracts.CheckValue(schema, nameof(schema));
                 Contracts.CheckValue(input, nameof(input));
-                Contracts.Check(Utils.Size(getters) == schema.ColumnCount);
+                Contracts.Check(Utils.Size(getters) == schema.Count);
                 _schema = schema;
                 _input = input;
                 _getters = getters ?? new Delegate[0];
@@ -523,7 +523,7 @@ namespace Microsoft.ML.Runtime.TimeSeriesProcessing
                 base.Dispose(disposing);
             }
 
-            public override ValueGetter<UInt128> GetIdGetter()
+            public override ValueGetter<RowId> GetIdGetter()
                 => _input.GetIdGetter();
 
             public override ValueGetter<T> GetGetter<T>(int col)
@@ -556,7 +556,7 @@ namespace Microsoft.ML.Runtime.TimeSeriesProcessing
             public Cursor(IHost host, SequentialDataTransform parent, RowCursor input)
                 : base(host, input)
             {
-                Ch.Assert(input.Schema.ColumnCount == parent.OutputSchema.ColumnCount);
+                Ch.Assert(input.Schema.Count == parent.OutputSchema.Count);
                 _parent = parent;
             }
 
@@ -564,7 +564,7 @@ namespace Microsoft.ML.Runtime.TimeSeriesProcessing
 
             public override bool IsColumnActive(int col)
             {
-                Ch.Check(0 <= col && col < Schema.ColumnCount, "col");
+                Ch.Check(0 <= col && col < Schema.Count, "col");
                 return Input.IsColumnActive(col);
             }
 
@@ -611,14 +611,14 @@ namespace Microsoft.ML.Runtime.TimeSeriesProcessing
         {
             Contracts.CheckValue(mapper, nameof(mapper));
             _mapper = mapper;
-            _bindings = new ColumnBindings(Schema.Create(input.Schema), mapper.GetOutputColumns());
+            _bindings = new ColumnBindings(input.Schema, mapper.GetOutputColumns());
         }
 
-        public static Schema GetOutputSchema(ISchema inputSchema, IRowMapper mapper)
+        public static Schema GetOutputSchema(Schema inputSchema, IRowMapper mapper)
         {
             Contracts.CheckValue(inputSchema, nameof(inputSchema));
             Contracts.CheckValue(mapper, nameof(mapper));
-            return new ColumnBindings(Schema.Create(inputSchema), mapper.GetOutputColumns()).Schema;
+            return new ColumnBindings(inputSchema, mapper.GetOutputColumns()).Schema;
         }
 
         private TimeSeriesRowToRowMapperTransform(IHost host, ModelLoadContext ctx, IDataView input)
@@ -628,7 +628,7 @@ namespace Microsoft.ML.Runtime.TimeSeriesProcessing
             // _mapper
 
             ctx.LoadModel<IStatefulRowMapper, SignatureLoadRowMapper>(host, out _mapper, "Mapper", input.Schema);
-            _bindings = new ColumnBindings(Schema.Create(input.Schema), _mapper.GetOutputColumns());
+            _bindings = new ColumnBindings(input.Schema, _mapper.GetOutputColumns());
         }
 
         public static TimeSeriesRowToRowMapperTransform Create(IHostEnvironment env, ModelLoadContext ctx, IDataView input)
@@ -660,12 +660,12 @@ namespace Microsoft.ML.Runtime.TimeSeriesProcessing
         /// </summary>
         private bool[] GetActive(Func<int, bool> predicate, out Func<int, bool> predicateInput)
         {
-            int n = _bindings.Schema.ColumnCount;
+            int n = _bindings.Schema.Count;
             var active = Utils.BuildArray(n, predicate);
             Contracts.Assert(active.Length == n);
 
             var activeInput = _bindings.GetActiveInput(predicate);
-            Contracts.Assert(activeInput.Length == _bindings.InputSchema.ColumnCount);
+            Contracts.Assert(activeInput.Length == _bindings.InputSchema.Count);
 
             // Get a predicate that determines which outputs are active.
             var predicateOut = GetActiveOutputColumns(active);
@@ -683,7 +683,7 @@ namespace Microsoft.ML.Runtime.TimeSeriesProcessing
         private Func<int, bool> GetActiveOutputColumns(bool[] active)
         {
             Contracts.AssertValue(active);
-            Contracts.Assert(active.Length == _bindings.Schema.ColumnCount);
+            Contracts.Assert(active.Length == _bindings.Schema.Count);
 
             return
                 col =>
@@ -766,8 +766,8 @@ namespace Microsoft.ML.Runtime.TimeSeriesProcessing
 
             using (var ch = Host.Start("GetEntireRow"))
             {
-                var activeArr = new bool[OutputSchema.ColumnCount];
-                for (int i = 0; i < OutputSchema.ColumnCount; i++)
+                var activeArr = new bool[OutputSchema.Count];
+                for (int i = 0; i < OutputSchema.Count; i++)
                     activeArr[i] = active(i);
                 var pred = GetActiveOutputColumns(activeArr);
                 var getters = _mapper.CreateGetters(input, pred, out Action disp);
@@ -825,7 +825,7 @@ namespace Microsoft.ML.Runtime.TimeSeriesProcessing
             public override Action<long> GetPinger() =>
                 _pinger as Action<long> ?? throw Contracts.Except("Invalid TValue in GetPinger: '{0}'", typeof(long));
 
-            public override ValueGetter<UInt128> GetIdGetter() => _input.GetIdGetter();
+            public override ValueGetter<RowId> GetIdGetter() => _input.GetIdGetter();
 
             public override bool IsColumnActive(int col)
             {
@@ -858,7 +858,7 @@ namespace Microsoft.ML.Runtime.TimeSeriesProcessing
 
             public override bool IsColumnActive(int col)
             {
-                Ch.Check(0 <= col && col < _bindings.Schema.ColumnCount);
+                Ch.Check(0 <= col && col < _bindings.Schema.Count);
                 return _active[col];
             }
 

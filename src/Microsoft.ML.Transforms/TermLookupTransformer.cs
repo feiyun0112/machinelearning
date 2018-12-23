@@ -142,10 +142,10 @@ namespace Microsoft.ML.Transforms.Categorical
                 ectx.Assert(_terms == null);
                 ectx.Assert(_values == null);
                 ectx.AssertValue(cursor);
-                ectx.Assert(0 <= colTerm && colTerm < cursor.Schema.ColumnCount);
-                ectx.Assert(cursor.Schema.GetColumnType(colTerm).IsText);
-                ectx.Assert(0 <= colValue && colValue < cursor.Schema.ColumnCount);
-                ectx.Assert(cursor.Schema.GetColumnType(colValue).Equals(Type));
+                ectx.Assert(0 <= colTerm && colTerm < cursor.Schema.Count);
+                ectx.Assert(cursor.Schema[colTerm].Type.IsText);
+                ectx.Assert(0 <= colValue && colValue < cursor.Schema.Count);
+                ectx.Assert(cursor.Schema[colValue].Type.Equals(Type));
 
                 var getTerm = cursor.GetGetter<ReadOnlyMemory<char>>(colTerm);
                 var getValue = cursor.GetGetter<TRes>(colValue);
@@ -349,27 +349,27 @@ namespace Microsoft.ML.Transforms.Categorical
             // If the user specified non-key values, we define the value column to be numeric.
             if (!keyValues)
                 return ComponentFactoryUtils.CreateFromFunction<IMultiStreamSource, IDataLoader>(
-                    (env, files) => TextLoader.Create(
-                        env,
-                        new TextLoader.Arguments()
-                        {
-                            Column = new[]
+                    (env, files) => new TextLoader(
+                        env, new[]
                             {
                                 new TextLoader.Column("Term", DataKind.TX, 0),
                                 new TextLoader.Column("Value", DataKind.Num, 1)
-                            }
-                        },
-                        files));
+                            }, dataSample: files).Read(files) as IDataLoader);
 
             // If the user specified key values, we scan the values to determine the range of the key type.
             ulong min = ulong.MaxValue;
             ulong max = ulong.MinValue;
             try
             {
-                var txtArgs = new TextLoader.Arguments();
-                bool parsed = CmdParser.ParseArguments(host, "col=Term:TX:0 col=Value:TX:1", txtArgs);
-                host.Assert(parsed);
-                var data = TextLoader.ReadFile(host, txtArgs, new MultiFileSource(filename));
+                var file = new MultiFileSource(filename);
+                var data = new TextLoader(host, new[]
+                    {
+                        new TextLoader.Column("Term", DataKind.TX, 0),
+                        new TextLoader.Column("Value", DataKind.TX, 1)
+                    },
+                    dataSample: file
+                ).Read(file);
+
                 using (var cursor = data.GetRowCursor(c => true))
                 {
                     var getTerm = cursor.GetGetter<ReadOnlyMemory<char>>(0);
@@ -444,17 +444,14 @@ namespace Microsoft.ML.Transforms.Categorical
             }
 
             return ComponentFactoryUtils.CreateFromFunction<IMultiStreamSource, IDataLoader>(
-                   (env, files) => TextLoader.Create(
-                       env,
-                       new TextLoader.Arguments()
-                       {
-                           Column = new[]
-                           {
-                                new TextLoader.Column("Term", DataKind.TX, 0),
-                                valueColumn
-                           }
-                       },
-                       files));
+                   (env, files) => new TextLoader(
+                        env,
+                        columns: new[]
+                        {
+                            new TextLoader.Column("Term", DataKind.TX, 0),
+                            valueColumn
+                        },
+                        dataSample: files).Read(files) as IDataLoader);
         }
 
         // This saves the lookup data as a byte array encoded as a binary .idv file.
@@ -504,9 +501,9 @@ namespace Microsoft.ML.Transforms.Categorical
 
             // REVIEW: Should we allow term to be a vector of text (each term in the vector
             // would map to the same value)?
-            var typeTerm = schema.GetColumnType(colTerm);
+            var typeTerm = schema[colTerm].Type;
             host.CheckUserArg(typeTerm.IsText, nameof(Arguments.TermColumn), "term column must contain text");
-            var typeValue = schema.GetColumnType(colValue);
+            var typeValue = schema[colValue].Type;
             var cols = new List<(string Source, string Name)>()
             {
                 (termColumn, "Term"),
@@ -573,14 +570,14 @@ namespace Microsoft.ML.Transforms.Categorical
         {
             Contracts.AssertValue(ectx);
             ectx.AssertValue(ldr);
-            ectx.Assert(ldr.Schema.ColumnCount == 2);
+            ectx.Assert(ldr.Schema.Count == 2);
 
             // REVIEW: Should we allow term to be a vector of text (each term in the vector
             // would map to the same value)?
-            ectx.Assert(ldr.Schema.GetColumnType(0).IsText);
+            ectx.Assert(ldr.Schema[0].Type.IsText);
 
             var schema = ldr.Schema;
-            var typeValue = schema.GetColumnType(1);
+            var typeValue = schema[1].Type;
 
             // REVIEW: We should know the number of rows - use that info to set initial capacity.
             var values = ValueMap.Create(typeValue);
@@ -662,16 +659,16 @@ namespace Microsoft.ML.Transforms.Categorical
         private static void DebugValidateLoader(BinaryLoader ldr)
         {
             Contracts.Assert(ldr != null);
-            Contracts.Assert(ldr.Schema.ColumnCount == 2);
-            Contracts.Assert(ldr.Schema.GetColumnType(0).IsText);
+            Contracts.Assert(ldr.Schema.Count == 2);
+            Contracts.Assert(ldr.Schema[0].Type.IsText);
         }
 
         private static void ValidateLoader(IExceptionContext ectx, BinaryLoader ldr)
         {
             if (ldr == null)
                 return;
-            ectx.CheckDecode(ldr.Schema.ColumnCount == 2);
-            ectx.CheckDecode(ldr.Schema.GetColumnType(0).IsText);
+            ectx.CheckDecode(ldr.Schema.Count == 2);
+            ectx.CheckDecode(ldr.Schema[0].Type.IsText);
         }
 
         protected override ColumnType GetColumnTypeCore(int iinfo)

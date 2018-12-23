@@ -149,8 +149,8 @@ namespace Microsoft.ML.Transforms
             => Create(env, ctx).MakeDataTransform(input);
 
         // Factory method for SignatureLoadRowMapper.
-        private static IRowMapper Create(IHostEnvironment env, ModelLoadContext ctx, ISchema inputSchema)
-            => Create(env, ctx).MakeRowMapper(Schema.Create(inputSchema));
+        private static IRowMapper Create(IHostEnvironment env, ModelLoadContext ctx, Schema inputSchema)
+            => Create(env, ctx).MakeRowMapper(inputSchema);
 
         public override void Save(ModelSaveContext ctx)
         {
@@ -185,7 +185,7 @@ namespace Microsoft.ML.Transforms
                     => input.GetGetter<T>(index);
 
                 input.Schema.TryGetColumnIndex(_columns[iinfo].Source, out int colIndex);
-                var type = input.Schema.GetColumnType(colIndex);
+                var type = input.Schema[colIndex].Type;
                 return Utils.MarshalInvoke(MakeGetter<int>, type.RawType, input, colIndex);
             }
 
@@ -208,7 +208,7 @@ namespace Microsoft.ML.Transforms
                 {
                     var srcVariableName = ctx.GetVariableName(column.Source);
                     _schema.TryGetColumnIndex(column.Source, out int colIndex);
-                    var dstVariableName = ctx.AddIntermediateVariable(_schema.GetColumnType(colIndex), column.Name);
+                    var dstVariableName = ctx.AddIntermediateVariable(_schema[colIndex].Type, column.Name);
                     var node = ctx.CreateNode(opType, srcVariableName, dstVariableName, ctx.GetNodeName(opType));
                     node.AddAttribute("type", LoaderSignature);
                 }

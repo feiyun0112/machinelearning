@@ -2,16 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using BenchmarkDotNet.Attributes;
 using Microsoft.ML.Data;
-using Microsoft.ML.Transforms;
 using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.Data;
-using Microsoft.ML.Runtime.Api;
-using Microsoft.ML.Runtime.Learners;
-using System.Linq;
 using Microsoft.ML.Transforms.Conversions;
+using System;
+using System.Linq;
 
 namespace Microsoft.ML.Benchmarks
 {
@@ -24,8 +21,8 @@ namespace Microsoft.ML.Benchmarks
             public override Schema Schema { get; }
             public override long Position => PositionValue;
             public override long Batch => 0;
-            public override ValueGetter<UInt128> GetIdGetter()
-                => (ref UInt128 val) => val = new UInt128((ulong)Position, 0);
+            public override ValueGetter<RowId> GetIdGetter()
+                => (ref RowId val) => val = new RowId((ulong)Position, 0);
 
             private readonly Delegate _getter;
 
@@ -78,12 +75,12 @@ namespace Microsoft.ML.Benchmarks
             var info = new HashingTransformer.ColumnInfo("Foo", "Bar", hashBits: hashBits);
             var xf = new HashingTransformer(_env, new[] { info });
             var mapper = xf.GetRowToRowMapper(_inRow.Schema);
-            mapper.OutputSchema.TryGetColumnIndex("Bar", out int outCol);
-            var outRow = mapper.GetRow(_inRow, c => c == outCol);
+            var column = mapper.OutputSchema["Bar"];
+            var outRow = mapper.GetRow(_inRow, c => c == column.Index);
             if (type is VectorType)
-                _vecGetter = outRow.GetGetter<VBuffer<uint>>(outCol);
+                _vecGetter = outRow.GetGetter<VBuffer<uint>>(column.Index);
             else
-                _getter = outRow.GetGetter<uint>(outCol);
+                _getter = outRow.GetGetter<uint>(column.Index);
         }
 
         /// <summary>

@@ -145,9 +145,9 @@ namespace Microsoft.ML.Transforms.Text
             _columns = columns.ToArray();
         }
 
-        protected override void CheckInputColumn(ISchema inputSchema, int col, int srcCol)
+        protected override void CheckInputColumn(Schema inputSchema, int col, int srcCol)
         {
-            var type = inputSchema.GetColumnType(srcCol);
+            var type = inputSchema[srcCol].Type;
             if (!WordTokenizingEstimator.IsColumnTypeValid(type))
                 throw Host.ExceptSchemaMismatch(nameof(inputSchema), "input", ColumnPairs[col].input, WordTokenizingEstimator.ExpectedColumnType, type.ToString());
         }
@@ -218,8 +218,8 @@ namespace Microsoft.ML.Transforms.Text
         }
 
         // Factory method for SignatureLoadRowMapper.
-        private static IRowMapper Create(IHostEnvironment env, ModelLoadContext ctx, ISchema inputSchema)
-            => Create(env, ctx).MakeRowMapper(Schema.Create(inputSchema));
+        private static IRowMapper Create(IHostEnvironment env, ModelLoadContext ctx, Schema inputSchema)
+            => Create(env, ctx).MakeRowMapper(inputSchema);
 
         private protected override IRowMapper MakeRowMapper(Schema schema) => new Mapper(this, schema);
 
@@ -240,7 +240,7 @@ namespace Microsoft.ML.Transforms.Text
                 for (int i = 0; i < _isSourceVector.Length; i++)
                 {
                     inputSchema.TryGetColumnIndex(_parent._columns[i].Input, out int srcCol);
-                    var srcType = inputSchema.GetColumnType(srcCol);
+                    var srcType = inputSchema[srcCol].Type;
                     _isSourceVector[i] = srcType.IsVector;
                 }
             }
@@ -264,7 +264,7 @@ namespace Microsoft.ML.Transforms.Text
                 disposer = null;
 
                 input.Schema.TryGetColumnIndex(_parent._columns[iinfo].Input, out int srcCol);
-                var srcType = input.Schema.GetColumnType(srcCol);
+                var srcType = input.Schema[srcCol].Type;
                 Host.Assert(srcType.ItemType.IsText);
 
                 if (!srcType.IsVector)
@@ -302,7 +302,7 @@ namespace Microsoft.ML.Transforms.Text
             {
                 Host.AssertValue(input);
 
-                int cv = input.Schema.GetColumnType(ColMapNewToOld[iinfo]).VectorSize;
+                int cv = input.Schema[ColMapNewToOld[iinfo]].Type.VectorSize;
                 Contracts.Assert(cv >= 0);
                 var getSrc = input.GetGetter<VBuffer<ReadOnlyMemory<char>>>(ColMapNewToOld[iinfo]);
                 var src = default(VBuffer<ReadOnlyMemory<char>>);

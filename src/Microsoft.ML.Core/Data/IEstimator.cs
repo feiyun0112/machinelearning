@@ -14,7 +14,7 @@ namespace Microsoft.ML.Core.Data
 {
     /// <summary>
     /// A set of 'requirements' to the incoming schema, as well as a set of 'promises' of the outgoing schema.
-    /// This is more relaxed than the proper <see cref="ISchema"/>, since it's only a subset of the columns,
+    /// This is more relaxed than the proper <see cref="Schema"/>, since it's only a subset of the columns,
     /// and also since it doesn't specify exact <see cref="ColumnType"/>'s for vectors and keys.
     /// </summary>
     public sealed class SchemaShape : IReadOnlyList<SchemaShape.Column>
@@ -173,19 +173,19 @@ namespace Microsoft.ML.Core.Data
 
             for (int iCol = 0; iCol < schema.Count; iCol++)
             {
-                if (!schema.IsHidden(iCol))
+                if (!schema[iCol].IsHidden)
                 {
                     // First create the metadata.
                     var mCols = new List<Column>();
-                    foreach (var metaNameType in schema.GetMetadataTypes(iCol))
+                    foreach (var metaColumn in schema[iCol].Metadata.Schema)
                     {
-                        GetColumnTypeShape(metaNameType.Value, out var mVecKind, out var mItemType, out var mIsKey);
-                        mCols.Add(new Column(metaNameType.Key, mVecKind, mItemType, mIsKey));
+                        GetColumnTypeShape(metaColumn.Type, out var mVecKind, out var mItemType, out var mIsKey);
+                        mCols.Add(new Column(metaColumn.Name, mVecKind, mItemType, mIsKey));
                     }
                     var metadata = mCols.Count > 0 ? new SchemaShape(mCols) : _empty;
                     // Next create the single column.
-                    GetColumnTypeShape(schema.GetColumnType(iCol), out var vecKind, out var itemType, out var isKey);
-                    cols.Add(new Column(schema.GetColumnName(iCol), vecKind, itemType, isKey, metadata));
+                    GetColumnTypeShape(schema[iCol].Type, out var vecKind, out var itemType, out var isKey);
+                    cols.Add(new Column(schema[iCol].Name, vecKind, itemType, isKey, metadata));
                 }
             }
             return new SchemaShape(cols);
@@ -287,7 +287,7 @@ namespace Microsoft.ML.Core.Data
     /// <summary>
     /// The estimator (in Spark terminology) is an 'untrained transformer'. It needs to 'fit' on the data to manufacture
     /// a transformer.
-    /// It also provides the 'schema propagation' like transformers do, but over <see cref="SchemaShape"/> instead of <see cref="ISchema"/>.
+    /// It also provides the 'schema propagation' like transformers do, but over <see cref="SchemaShape"/> instead of <see cref="Schema"/>.
     /// </summary>
     public interface IEstimator<out TTransformer>
         where TTransformer : ITransformer

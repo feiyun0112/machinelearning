@@ -498,7 +498,7 @@ namespace Microsoft.ML.Trainers.PCA
             return new PcaPredictor(env, ctx);
         }
 
-        public void SaveSummary(TextWriter writer, RoleMappedSchema schema)
+        void ICanSaveSummary.SaveSummary(TextWriter writer, RoleMappedSchema schema)
         {
             ((ICanSaveInTextFormat)this).SaveAsText(writer, schema);
         }
@@ -530,7 +530,7 @@ namespace Microsoft.ML.Trainers.PCA
             }
         }
 
-        public IDataView GetSummaryDataView(RoleMappedSchema schema)
+        IDataView ICanGetSummaryAsIDataView.GetSummaryDataView(RoleMappedSchema schema)
         {
             var bldr = new ArrayDataViewBuilder(Host);
 
