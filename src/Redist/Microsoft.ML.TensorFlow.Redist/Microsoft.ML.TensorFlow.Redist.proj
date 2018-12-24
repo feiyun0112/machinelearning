@@ -18,7 +18,7 @@
       <!-- although we could extract all archives on all machines, mac requires a fixup which can only be run on mac 
            so we split these per-rid and join during the official build packaging.  -->
       <TensorFlowArchive Condition="'$(PackageRid)' == '%(Runtime)'"
-                         Include="@(TensorFlowConfig->'https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-%(Identity)-x86_64-$(TensorFlowVersion)%(FileExtension)')" />
+                         Include="@(TensorFlowConfig->'http://localhost/libtensorflow-cpu-%(Identity)-x86_64-$(TensorFlowVersion)%(FileExtension)')" />
       <!-- set up metdata used by all targets -->
       <TensorFlowArchive DownloadFile="$(IntermediateOutputPath)%(FileName)%(Extension)"
                          DownloadShaFile="$(IntermediateOutputPath)%(FileName)%(Extension).sha"
