@@ -92,14 +92,15 @@ namespace Microsoft.ML.Learners
             [Argument(ArgumentType.AtMostOnce, HelpText = "Enforce non-negative weights", ShortName = "nn", SortOrder = 90)]
             public bool EnforceNonNegativity = Defaults.EnforceNonNegativity;
 
+            [BestFriend]
             internal static class Defaults
             {
-                internal const float L2Weight = 1;
-                internal const float L1Weight = 1;
-                internal const float OptTol = 1e-7f;
-                internal const int MemorySize = 20;
-                internal const int MaxIterations = int.MaxValue;
-                internal const bool EnforceNonNegativity = false;
+                public const float L2Weight = 1;
+                public const float L1Weight = 1;
+                public const float OptTol = 1e-7f;
+                public const int MemorySize = 20;
+                public const int MaxIterations = int.MaxValue;
+                public const bool EnforceNonNegativity = false;
             }
         }
 
@@ -155,7 +156,6 @@ namespace Microsoft.ML.Learners
             string featureColumn,
             SchemaShape.Column labelColumn,
             string weightColumn,
-            Action<TArgs> advancedSettings,
             float l1Weight,
             float l2Weight,
             float optimizationTolerance,
@@ -165,14 +165,14 @@ namespace Microsoft.ML.Learners
                         {
                             FeatureColumn = featureColumn,
                             LabelColumn = labelColumn.Name,
-                            WeightColumn = weightColumn ?? Optional<string>.Explicit(weightColumn),
+                            WeightColumn = weightColumn != null ? Optional<string>.Explicit(weightColumn) : Optional<string>.Implicit(DefaultColumnNames.Weight),
                             L1Weight = l1Weight,
                             L2Weight = l2Weight,
                             OptTol = optimizationTolerance,
                             MemorySize = memorySize,
                             EnforceNonNegativity = enforceNoNegativity
                         },
-                  labelColumn, advancedSettings)
+                  labelColumn)
         {
         }
 
@@ -181,7 +181,7 @@ namespace Microsoft.ML.Learners
             SchemaShape.Column labelColumn,
             Action<TArgs> advancedSettings = null)
             : base(Contracts.CheckRef(env, nameof(env)).Register(RegisterName), TrainerUtils.MakeR4VecFeature(args.FeatureColumn),
-                  labelColumn, TrainerUtils.MakeR4ScalarWeightColumn(args.WeightColumn, args.WeightColumn.IsExplicit))
+                  labelColumn, TrainerUtils.MakeR4ScalarWeightColumn(args.WeightColumn))
         {
             Host.CheckValue(args, nameof(args));
             Args = args;

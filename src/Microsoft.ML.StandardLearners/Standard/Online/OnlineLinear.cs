@@ -41,9 +41,10 @@ namespace Microsoft.ML.Trainers.Online
         [Argument(ArgumentType.AtMostOnce, HelpText = "Size of cache when trained in Scope", ShortName = "cache")]
         public int StreamingCacheSize = 1000000;
 
+        [BestFriend]
         internal class OnlineDefaultArgs
         {
-            internal const int NumIterations = 1;
+            public const int NumIterations = 1;
         }
     }
 
@@ -246,12 +247,6 @@ namespace Microsoft.ML.Trainers.Online
             Name = name;
             // REVIEW: Caching could be false for one iteration, if we got around the whole shuffling issue.
             Info = new TrainerInfo(calibration: NeedCalibration, supportIncrementalTrain: true);
-        }
-
-        private protected static TArgs InvokeAdvanced<TArgs>(Action<TArgs> advancedSettings, TArgs args)
-        {
-            advancedSettings?.Invoke(args);
-            return args;
         }
 
         private protected sealed override TModel TrainModelCore(TrainContext context)
